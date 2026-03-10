@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DentAI Asistan</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap');
+  :root{--bg:#f4f1ec;--surface:#fffef9;--border:#e2ddd4;--accent:#1a5c4a;--accent-light:#d4ede6;--accent2:#c4773b;--text:#1c1a17;--text-muted:#7a7570;--danger:#b84040;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
+  nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;}
+  .logo{font-family:'DM Serif Display',serif;font-size:20px;color:var(--accent);}
+  .logo span{color:var(--accent2);}
+  .nav-right{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .tab-btn{padding:6px 12px;border-radius:8px;border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:var(--text-muted);cursor:pointer;transition:all .2s;}
+  .tab-btn.active{background:var(--accent);color:#fff;}
+  .tab-btn:hover:not(.active){background:var(--accent-light);color:var(--accent);}
+  .api-btn{font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--text-muted);cursor:pointer;transition:all .2s;}
+  .api-btn.set{background:var(--accent-light);color:var(--accent);border-color:var(--accent);}
+  .page{display:none;flex:1;padding:20px 16px;max-width:820px;margin:0 auto;width:100%;}
+  .page.active{display:flex;flex-direction:column;}
+  .chat-wrapper{display:flex;flex-direction:column;height:calc(100vh - 56px - 40px);}
+  .chat-messages{flex:1;overflow-y:auto;padding:16px 0;display:flex;flex-direction:column;gap:14px;scroll-behavior:smooth;}
+  .msg{display:flex;gap:10px;animation:fadeUp .3s ease both;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+  .msg.user{flex-direction:row-reverse;}
+  .avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0;}
+  .msg.ai .avatar{background:var(--accent);color:#fff;}
+  .msg.user .avatar{background:var(--accent2);color:#fff;}
+  .bubble{max-width:74%;padding:11px 15px;border-radius:16px;font-size:14px;line-height:1.65;white-space:pre-wrap;}
+  .msg.ai .bubble{background:var(--surface);border:1px solid var(--border);border-top-left-radius:4px;}
+  .msg.user .bubble{background:var(--accent);color:#fff;border-top-right-radius:4px;}
+  .chat-input-area{padding:10px 0 0;border-top:1px solid var(--border);}
+  .no-docs-warning{background:#fff8f0;border:1px solid #f0d9b5;color:#8a5a20;border-radius:10px;padding:9px 13px;font-size:13px;margin-bottom:10px;}
+  .input-row{display:flex;gap:8px;align-items:flex-end;}
+  textarea{flex:1;border:1.5px solid var(--border);border-radius:12px;padding:11px 13px;font-family:'DM Sans',sans-serif;font-size:14px;resize:none;background:var(--surface);color:var(--text);transition:border-color .2s;max-height:120px;min-height:46px;}
+  textarea:focus{outline:none;border-color:var(--accent);}
+  .send-btn{width:46px;height:46px;border-radius:12px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-size:20px;transition:background .2s;flex-shrink:0;}
+  .send-btn:hover{background:#134d3d;}
+  .send-btn:disabled{background:var(--border);cursor:not-allowed;}
+  .section-card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px;}
+  .section-card h3{font-size:14px;font-weight:600;margin-bottom:3px;color:var(--text);}
+  .section-card .desc{font-size:12px;color:var(--text-muted);margin-bottom:12px;line-height:1.5;}
+  .add-row{display:flex;gap:8px;margin-bottom:4px;}
+  .add-row input{flex:1;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--bg);color:var(--text);}
+  .add-row input:focus{outline:none;border-color:var(--accent);}
+  .add-btn{padding:9px 16px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;}
+  .add-btn:hover{background:#134d3d;}
+  .refresh-btn{width:100%;padding:9px;border-radius:10px;border:1.5px solid var(--accent);background:transparent;color:var(--accent);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;margin-top:10px;transition:all .2s;}
+  .refresh-btn:hover{background:var(--accent-light);}
+  .refresh-btn:disabled{opacity:.5;cursor:not-allowed;}
+  .drive-list{display:flex;flex-direction:column;gap:7px;margin-top:10px;}
+  .drive-item{background:var(--bg);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;}
+  .drive-item-info{flex:1;min-width:0;}
+  .drive-item-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .drive-item-status{font-size:11px;margin-top:2px;}
+  .drive-item-status.ok{color:var(--accent);}
+  .drive-item-status.loading{color:#b07020;}
+  .drive-item-status.error{color:var(--danger);}
+  .del-btn{background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px;padding:4px;border-radius:6px;flex-shrink:0;}
+  .del-btn:hover{color:var(--danger);}
+  .upload-zone{border:2px dashed var(--border);border-radius:14px;padding:24px;text-align:center;background:var(--surface);cursor:pointer;transition:border-color .2s,background .2s;margin-bottom:14px;}
+  .upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:var(--accent-light);}
+  .upload-zone p{font-size:13px;font-weight:600;margin-bottom:4px;}
+  .upload-zone small{font-size:11.5px;color:var(--text-muted);}
+  #fileInput{display:none;}
+  .doc-list{display:flex;flex-direction:column;gap:9px;}
+  .doc-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;animation:fadeUp .3s ease both;}
+  .doc-info{flex:1;min-width:0;}
+  .doc-name{font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .doc-meta{font-size:11px;color:var(--text-muted);margin-top:2px;}
+  .doc-badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;white-space:nowrap;}
+  .doc-badge.ready{background:var(--accent-light);color:var(--accent);}
+  .doc-badge.loading{background:#fef3e2;color:#b07020;}
+  .doc-badge.drive{background:#e8f0fe;color:#1a73e8;}
+  .empty-state{text-align:center;padding:28px;color:var(--text-muted);font-size:13px;}
+  .typing{display:flex;gap:5px;align-items:center;padding:4px 0;}
+  .typing span{width:7px;height:7px;border-radius:50%;background:var(--text-muted);animation:bounce 1.2s infinite;}
+  .typing span:nth-child(2){animation-delay:.2s;}
+  .typing span:nth-child(3){animation-delay:.4s;}
+  @keyframes bounce{0%,60%,100%{transform:translateY(0);}30%{transform:translateY(-6px);}}
+  .modal-overlay{position:fixed;inset:0;background:rgba(28,26,23,.5);display:flex;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(4px);}
+  .modal{background:var(--surface);border-radius:20px;padding:28px;max-width:420px;width:92%;box-shadow:0 20px 60px rgba(0,0,0,.15);}
+  .modal h3{font-family:'DM Serif Display',serif;font-size:21px;color:var(--accent);margin-bottom:6px;}
+  .modal p{font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.6;}
+  .modal input{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:10px 13px;font-family:'DM Sans',sans-serif;font-size:14px;margin-bottom:8px;background:var(--bg);color:var(--text);}
+  .modal input:focus{outline:none;border-color:var(--accent);}
+  .modal-btn{width:100%;padding:11px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px;}
+  .modal-btn:hover{background:#134d3d;}
+  .modal-note{font-size:11.5px;color:var(--text-muted);text-align:center;}
+  .modal-link{color:var(--accent);text-decoration:none;font-weight:500;}
+  .modal-steps{font-size:12px;background:var(--bg);border-radius:10px;padding:12px;margin-bottom:14px;line-height:2;color:var(--text-muted);}
+  .modal-steps b{color:var(--text);}
+  .cancel-btn{width:100%;padding:8px;border-radius:10px;border:1px solid var(--border);background:transparent;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;color:var(--text-muted);}
+  .scrollbar::-webkit-scrollbar{width:4px;}
+  .scrollbar::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px;}
+  .admin-title{font-family:'DM Serif Display',serif;font-size:22px;color:var(--accent);margin-bottom:4px;}
+  .admin-sub{font-size:12.5px;color:var(--text-muted);margin-bottom:16px;}
+</style>
+</head>
+<body>
+
+<!-- GEMINI MODAL -->
+<div class="modal-overlay" id="apiModal">
+  <div class="modal">
+    <h3>DentAI &mdash; Gemini API</h3>
+    <div class="modal-steps">
+      <b>1.</b> <a class="modal-link" href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com/app/apikey</a><br>
+      <b>2.</b> "Create API Key" butonuna tiklayin<br>
+      <b>3.</b> Anahtari kopyalayip asagiya yapistirin
+    </div>
+    <p>Ucretsiz katman: gunde 1.500 istek.</p>
+    <input type="password" id="apiKeyInput" placeholder="AIza..." autocomplete="off">
+    <button class="modal-btn" id="apiSaveBtn">Basla</button>
+    <p class="modal-note">Anahtar yalnizca bu cihazda saklanir</p>
+  </div>
+</div>
+
+<!-- TAVILY MODAL -->
+<div class="modal-overlay" id="tavilyModal" style="display:none">
+  <div class="modal">
+    <h3>Web Arama &mdash; Tavily</h3>
+    <div class="modal-steps">
+      <b>1.</b> <a class="modal-link" href="https://app.tavily.com" target="_blank">app.tavily.com</a> adresine gidin<br>
+      <b>2.</b> Giris yapin, API Keys bolumunden anahtari kopyalayin
+    </div>
+    <p>Kaynaklarinizda olmayan bilgiler icin web arama yapar. Aylik 1.000 arama ucretsiz.</p>
+    <input type="password" id="tavilyKeyInput" placeholder="tvly-..." autocomplete="off">
+    <button class="modal-btn" id="tavSaveBtn">Kaydet</button>
+    <button class="cancel-btn" id="tavCancelBtn">Simdi degil</button>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">Dent<span>AI</span></div>
+  <div class="nav-right">
+    <button class="api-btn" id="apiBadge">Gemini</button>
+    <button class="api-btn" id="tavilyBadge">Web</button>
+    <button class="tab-btn active" id="tabChat">Asistan</button>
+    <button class="tab-btn" id="tabAdmin">Kaynaklar</button>
+  </div>
+</nav>
+
+<!-- CHAT PAGE -->
+<div class="page active" id="chatPage">
+  <div class="chat-wrapper">
+    <div class="chat-messages scrollbar" id="chatMessages">
+      <div class="msg ai">
+        <div class="avatar">D</div>
+        <div class="bubble">Merhaba! Ben DentAI, dis hekimligi asistaninizim. Kaynaklariniza dayanarak sorularinizi yanitlarim. Nasil yardimci olabilirim?</div>
+      </div>
+    </div>
+    <div class="chat-input-area">
+      <div class="no-docs-warning" id="noDocsWarn" style="display:none">Henuz kaynak yuklenmedi. Kaynaklar sekmesinden dosya veya Drive linki ekleyin.</div>
+      <div class="input-row">
+        <textarea id="userInput" placeholder="Sorunuzu yazin..." rows="1"></textarea>
+        <button class="send-btn" id="sendBtn">&#9658;</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN PAGE -->
+<div class="page" id="adminPage">
+  <div class="admin-title">Kaynak Yonetimi</div>
+  <div class="admin-sub">Dosyalari buradan ekleyin. Uygulama her acilista Drive kaynaklarini otomatik yukler.</div>
+
+  <!-- DRIVE SECTION -->
+  <div class="section-card">
+    <h3>Google Drive Kaynaklari</h3>
+    <div class="desc">Drive'daki dosyalarin linkini yapistirin. Her acilista otomatik yuklenir.</div>
+    <div class="add-row">
+      <input type="url" id="driveUrlInput" placeholder="https://docs.google.com/... veya drive.google.com/file/...">
+      <button class="add-btn" id="driveAddBtn">Ekle</button>
+    </div>
+    <div class="drive-list" id="driveList"></div>
+    <button class="refresh-btn" id="refreshDriveBtn">Tum Drive Kaynaklarini Yenile</button>
+  </div>
+
+  <!-- UPLOAD SECTION -->
+  <div class="section-card">
+    <h3>Manuel Dosya Yukleme</h3>
+    <div class="desc">Bu oturumda gecerli. Sayfa kapatilinca silinir.</div>
+    <div class="upload-zone" id="uploadZone">
+      <p>Dosya yuklemek icin tiklayin</p>
+      <small>PDF, TXT, DOCX, PPT/PPTX, JPG, PNG, WEBP</small>
+    </div>
+    <input type="file" id="fileInput" accept=".pdf,.txt,.docx,.jpg,.jpeg,.png,.webp,.ppt,.pptx" multiple>
+  </div>
+
+  <div id="docList" class="doc-list"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+(function() {
+  var GEMINI_MODEL = 'gemini-2.5-flash';
+  var apiKey = localStorage.getItem('dentai_gemini_key') || '';
+  var tavilyKey = localStorage.getItem('dentai_tavily_key') || '';
+  var documents = [];
+  var chatHistory = [];
+  var isLoading = false;
+  var IMAGE_TYPES = ['image/jpeg','image/png','image/webp','image/gif'];
+  var PPTX_TYPES = ['application/vnd.openxmlformats-officedocument.presentationml.presentation','application/vnd.ms-powerpoint'];
+
+  // Drive linklerini localStorage'dan yukle
+  var driveLinks = JSON.parse(localStorage.getItem('dentai_drive_links') || '[]');
+  // [{id, name, url, fileId}]
+
+  // ── INIT ──
+  window.addEventListener('load', function() {
+    if (apiKey) {
+      document.getElementById('apiModal').style.display = 'none';
+      document.getElementById('apiBadge').classList.add('set');
+    }
+    if (tavilyKey) {
+      document.getElementById('tavilyBadge').classList.add('set');
+    }
+
+    document.getElementById('apiSaveBtn').addEventListener('click', saveApiKey);
+    document.getElementById('tavSaveBtn').addEventListener('click', saveTavilyKey);
+    document.getElementById('tavCancelBtn').addEventListener('click', function() { document.getElementById('tavilyModal').style.display = 'none'; });
+    document.getElementById('apiBadge').addEventListener('click', showApiModal);
+    document.getElementById('tavilyBadge').addEventListener('click', showTavilyModal);
+    document.getElementById('tabChat').addEventListener('click', function() { switchTab('chat', this); });
+    document.getElementById('tabAdmin').addEventListener('click', function() { switchTab('admin', this); });
+    document.getElementById('sendBtn').addEventListener('click', sendMessage);
+    document.getElementById('userInput').addEventListener('keydown', handleKey);
+    document.getElementById('userInput').addEventListener('input', function() { autoResize(this); });
+    document.getElementById('uploadZone').addEventListener('click', function() { document.getElementById('fileInput').click(); });
+    document.getElementById('uploadZone').addEventListener('dragover', dragOver);
+    document.getElementById('uploadZone').addEventListener('dragleave', dragLeave);
+    document.getElementById('uploadZone').addEventListener('drop', dropFile);
+    document.getElementById('fileInput').addEventListener('change', handleFiles);
+    document.getElementById('driveAddBtn').addEventListener('click', addDriveLink);
+    document.getElementById('refreshDriveBtn').addEventListener('click', function() { loadAllDriveFiles(true); });
+    document.getElementById('driveUrlInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') addDriveLink(); });
+
+    renderDriveList();
+    loadAllDriveFiles(false);
+    updateNoDocsWarning();
+  });
+
+  // ── API MODALS ──
+  function showApiModal() { document.getElementById('apiKeyInput').value = ''; document.getElementById('apiModal').style.display = 'flex'; }
+  function saveApiKey() {
+    var val = document.getElementById('apiKeyInput').value.trim();
+    if (!val) { alert('Lutfen API anahtarinizi girin.'); return; }
+    apiKey = val;
+    localStorage.setItem('dentai_gemini_key', val);
+    document.getElementById('apiModal').style.display = 'none';
+    document.getElementById('apiBadge').classList.add('set');
+    updateNoDocsWarning();
+  }
+  function showTavilyModal() { document.getElementById('tavilyKeyInput').value = ''; document.getElementById('tavilyModal').style.display = 'flex'; }
+  function saveTavilyKey() {
+    var val = document.getElementById('tavilyKeyInput').value.trim();
+    if (!val) { alert('Lutfen Tavily anahtarinizi girin.'); return; }
+    tavilyKey = val;
+    localStorage.setItem('dentai_tavily_key', val);
+    document.getElementById('tavilyModal').style.display = 'none';
+    document.getElementById('tavilyBadge').classList.add('set');
+  }
+
+  // ── TABS ──
+  function switchTab(tab, btn) {
+    document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.getElementById(tab + 'Page').classList.add('active');
+    btn.classList.add('active');
+    if (tab === 'chat') updateNoDocsWarning();
+  }
+  function updateNoDocsWarning() {
+    var hasDocs = documents.length > 0 || driveLinks.length > 0;
+    document.getElementById('noDocsWarn').style.display = hasDocs ? 'none' : 'block';
+  }
+
+  // ── DRIVE LINK YONETIMI ──
+  function extractDriveId(url) {
+    // Klasor
+    var m = url.match(/folders\/([a-zA-Z0-9_-]{10,})/);
+    if (m) return { id: m[1], isFolder: true };
+    // Dosya
+    m = url.match(/\/d\/([a-zA-Z0-9_-]{10,})/);
+    if (m) return { id: m[1], isFolder: false };
+    m = url.match(/id=([a-zA-Z0-9_-]{10,})/);
+    if (m) return { id: m[1], isFolder: false };
+    m = url.match(/document\/d\/([a-zA-Z0-9_-]{10,})/);
+    if (m) return { id: m[1], isFolder: false };
+    m = url.match(/spreadsheets\/d\/([a-zA-Z0-9_-]{10,})/);
+    if (m) return { id: m[1], isFolder: false };
+    m = url.match(/presentation\/d\/([a-zA-Z0-9_-]{10,})/);
+    if (m) return { id: m[1], isFolder: false };
+    return null;
+  }
+
+  function addDriveLink() {
+    var url = document.getElementById('driveUrlInput').value.trim();
+    if (!url) return;
+    var parsed = extractDriveId(url);
+    if (!parsed) { alert('Gecersiz Drive linki.'); return; }
+
+    if (parsed.isFolder) {
+      // Klasor ekle - once icerik listesini cek
+      var btn = document.getElementById('driveAddBtn');
+      btn.disabled = true; btn.textContent = 'Yukleniyor...';
+      var scriptUrl = APPS_SCRIPT_URL + '?folderId=' + encodeURIComponent(parsed.id);
+      fetch(scriptUrl)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.error) { alert('Klasor okunamadi: ' + data.error); return; }
+          var files = data.files || [];
+          if (!files.length) { alert('Klasorde dosya bulunamadi.'); return; }
+          files.forEach(function(f) {
+            var already = driveLinks.some(function(l) { return l.fileId === f.id; });
+            if (!already) {
+              var link = { id: Date.now() + Math.random(), name: f.name, url: url, fileId: f.id, isFolder: false };
+              driveLinks.push(link);
+              fetchDriveFile(link);
+            }
+          });
+          saveDriveLinks();
+          renderDriveList();
+          updateNoDocsWarning();
+        })
+        .catch(function(e) { alert('Hata: ' + e.message); })
+        .finally(function() { btn.disabled = false; btn.textContent = 'Ekle'; });
+    } else {
+      var already = driveLinks.some(function(l) { return l.fileId === parsed.id; });
+      if (already) { alert('Bu dosya zaten ekli.'); return; }
+      var link = { id: Date.now(), name: 'Dosya_' + parsed.id.slice(0,6), url: url, fileId: parsed.id };
+      driveLinks.push(link);
+      saveDriveLinks();
+      renderDriveList();
+      fetchDriveFile(link);
+      updateNoDocsWarning();
+    }
+    document.getElementById('driveUrlInput').value = '';
+  }
+
+  function removeDriveLink(id) {
+    driveLinks = driveLinks.filter(function(l) { return l.id !== id; });
+    documents = documents.filter(function(d) { return d.driveId !== id; });
+    saveDriveLinks();
+    renderDriveList();
+    renderDocList();
+    updateNoDocsWarning();
+  }
+  window.removeDriveLink = removeDriveLink;
+
+  function saveDriveLinks() {
+    localStorage.setItem('dentai_drive_links', JSON.stringify(driveLinks));
+  }
+
+  function renderDriveList() {
+    var el = document.getElementById('driveList');
+    if (!driveLinks.length) {
+      el.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:6px 0;">Henuz Drive linki eklenmedi.</div>';
+      return;
+    }
+    el.innerHTML = driveLinks.map(function(l) {
+      var doc = documents.find(function(d) { return d.driveId === l.id; });
+      var statusText = 'Bekleniyor...';
+      var statusClass = 'loading';
+      if (doc) {
+        if (doc.status === 'ready') { statusText = 'Yuklendi'; statusClass = 'ok'; }
+        else if (doc.status === 'error') { statusText = 'Yuklenemedi'; statusClass = 'error'; }
+        else { statusText = 'Yukleniyor...'; statusClass = 'loading'; }
+      }
+      return '<div class="drive-item">' +
+        '<div class="drive-item-info">' +
+          '<div class="drive-item-name">' + l.name + '</div>' +
+          '<div class="drive-item-status ' + statusClass + '">' + statusText + '</div>' +
+        '</div>' +
+        '<button class="del-btn" onclick="removeDriveLink(' + l.id + ')">&#10005;</button>' +
+      '</div>';
+    }).join('');
+  }
+
+  function loadAllDriveFiles(force) {
+    var btn = document.getElementById('refreshDriveBtn');
+    btn.disabled = true;
+    btn.textContent = 'Yukleniyor...';
+    var promises = driveLinks.map(function(link) {
+      var existing = documents.find(function(d) { return d.driveId === link.id && d.status === 'ready'; });
+      if (existing && !force) return Promise.resolve();
+      return fetchDriveFile(link);
+    });
+    Promise.all(promises).then(function() {
+      btn.disabled = false;
+      btn.textContent = 'Tum Drive Kaynaklarini Yenile';
+    });
+  }
+
+  var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbymNvPgXlno1gsLXUuarGMoOgPAXC3i6NT4L3OXHrKT7r1Btt-UtJQM1Q2vBzf-aw-I/exec';
+
+  function fetchDriveFile(link) {
+    var existing = documents.find(function(d) { return d.driveId === link.id; });
+    var doc;
+    if (existing) {
+      doc = existing;
+      doc.status = 'loading';
+    } else {
+      doc = { id: Date.now() + Math.random(), driveId: link.id, name: link.name, size: 0, content: '', status: 'loading', type: 'text', source: 'drive' };
+      documents.push(doc);
+    }
+    renderDriveList();
+    renderDocList();
+
+    var scriptUrl = APPS_SCRIPT_URL + '?fileId=' + encodeURIComponent(link.fileId);
+
+    return fetch(scriptUrl)
+      .then(function(res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then(function(data) {
+        if (data.error) throw new Error(data.error);
+        doc.name = data.name || link.name;
+        link.name = doc.name;
+        saveDriveLinks();
+        if (data.type === 'pdf') {
+          doc.content = 'data:application/pdf;base64,' + data.content;
+          doc.type = 'pdf';
+        } else if (data.type === 'image') {
+          doc.content = 'data:' + (data.mimeType || 'image/jpeg') + ';base64,' + data.content;
+          doc.type = 'image';
+          doc.mimeType = data.mimeType || 'image/jpeg';
+        } else {
+          doc.content = data.content;
+          doc.type = 'text';
+        }
+        doc.status = 'ready';
+        renderDriveList();
+        renderDocList();
+        updateNoDocsWarning();
+      })
+      .catch(function(err) {
+        doc.status = 'error';
+        doc.content = '';
+        renderDriveList();
+        renderDocList();
+      });
+  }
+
+  // ── MANUEL DOSYA YUKLEME ──
+  function dragOver(e) { e.preventDefault(); document.getElementById('uploadZone').classList.add('drag'); }
+  function dragLeave() { document.getElementById('uploadZone').classList.remove('drag'); }
+  function dropFile(e) {
+    e.preventDefault();
+    document.getElementById('uploadZone').classList.remove('drag');
+    Array.from(e.dataTransfer.files).forEach(function(f) { processFile(f); });
+  }
+  function handleFiles(e) {
+    Array.from(e.target.files).forEach(function(f) { processFile(f); });
+    e.target.value = '';
+  }
+
+  function extractPptxText(file) {
+    return file.arrayBuffer().then(function(ab) { return JSZip.loadAsync(ab); }).then(function(zip) {
+      var slideFiles = Object.keys(zip.files).filter(function(f) { return /^ppt\/slides\/slide\d+\.xml$/.test(f); });
+      slideFiles.sort(function(a, b) { return parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]); });
+      return Promise.all(slideFiles.map(function(sf, i) {
+        return zip.files[sf].async('string').then(function(xml) {
+          var m = xml.match(/<a:t[^>]*>([^<]+)<\/a:t>/g) || [];
+          var s = m.map(function(x) { return x.replace(/<[^>]+>/g, ''); }).join(' ').trim();
+          return s ? '[Slayt ' + (i+1) + ']: ' + s : '';
+        });
+      })).then(function(parts) { return parts.filter(Boolean).join('\n') || '(Metin bulunamadi)'; });
+    });
+  }
+
+  function extractDocxText(file) {
+    return file.arrayBuffer().then(function(ab) { return JSZip.loadAsync(ab); })
+      .then(function(zip) { return zip.files['word/document.xml'].async('string'); })
+      .then(function(xml) {
+        return xml.replace(/<\/w:p>/g, '\n').replace(/<\/w:tr>/g, '\n').replace(/<[^>]+>/g, '').replace(/\n{3,}/g, '\n\n').trim();
+      });
+  }
+
+  function readFileContent(file, doc) {
+    var isPptx = file.name.endsWith('.pptx') || file.name.endsWith('.ppt') || PPTX_TYPES.indexOf(file.type) >= 0;
+    var isDocx = file.name.endsWith('.docx') || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    if (isPptx) {
+      return extractPptxText(file).then(function(t) { doc.content = t; doc.type = 'text'; doc.status = 'ready'; renderDocList(); }).catch(function() { doc.content = '(Okunamadi)'; doc.type = 'text'; doc.status = 'ready'; renderDocList(); });
+    }
+    if (isDocx) {
+      return extractDocxText(file).then(function(t) { doc.content = t; doc.type = 'text'; doc.status = 'ready'; renderDocList(); }).catch(function() { doc.content = '(Okunamadi)'; doc.type = 'text'; doc.status = 'ready'; renderDocList(); });
+    }
+    return new Promise(function(resolve) {
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) { doc.content = ev.target.result; doc.type = 'pdf'; }
+        else if (IMAGE_TYPES.indexOf(file.type) >= 0) { doc.content = ev.target.result; doc.type = 'image'; doc.mimeType = file.type; }
+        else { doc.content = ev.target.result; doc.type = 'text'; }
+        doc.status = 'ready'; renderDocList(); resolve();
+      };
+      (file.type === 'application/pdf' || file.name.endsWith('.pdf') || IMAGE_TYPES.indexOf(file.type) >= 0) ? reader.readAsDataURL(file) : reader.readAsText(file);
+    });
+  }
+
+  function processFile(file) {
+    var doc = { id: Date.now() + Math.random(), name: file.name, size: file.size, content: '', status: 'loading', type: 'text', source: 'manual' };
+    documents.push(doc); renderDocList();
+    readFileContent(file, doc).then(function() { updateNoDocsWarning(); });
+  }
+
+  function deleteDoc(id) {
+    documents = documents.filter(function(d) { return d.id !== id; });
+    renderDocList(); updateNoDocsWarning();
+  }
+  window.deleteDoc = deleteDoc;
+
+  function formatSize(b) {
+    if (!b) return '';
+    if (b < 1024) return b + ' B';
+    if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+    return (b/1048576).toFixed(1) + ' MB';
+  }
+
+  function renderDocList() {
+    var manualDocs = documents.filter(function(d) { return d.source === 'manual'; });
+    var el = document.getElementById('docList');
+    if (!manualDocs.length) { el.innerHTML = ''; return; }
+    el.innerHTML = manualDocs.map(function(d) {
+      return '<div class="doc-card">' +
+        '<div class="doc-info"><div class="doc-name">' + d.name + '</div><div class="doc-meta">' + formatSize(d.size) + '</div></div>' +
+        '<span class="doc-badge ' + d.status + '">' + (d.status === 'ready' ? 'Hazir' : 'Yukleniyor...') + '</span>' +
+        '<button class="del-btn" onclick="deleteDoc(' + d.id + ')">&#10005;</button></div>';
+    }).join('');
+  }
+
+  // ── CHAT ──
+  function handleKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+  function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px'; }
+
+  function appendMsg(role, text) {
+    var box = document.getElementById('chatMessages');
+    var div = document.createElement('div');
+    div.className = 'msg ' + (role === 'user' ? 'user' : 'ai');
+    div.innerHTML = '<div class="avatar">' + (role === 'user' ? 'S' : 'D') + '</div><div class="bubble">' + text + '</div>';
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+  function showTyping() {
+    var box = document.getElementById('chatMessages');
+    var div = document.createElement('div');
+    div.className = 'msg ai'; div.id = 'typingIndicator';
+    div.innerHTML = '<div class="avatar">D</div><div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div>';
+    box.appendChild(div); box.scrollTop = box.scrollHeight;
+  }
+  function hideTyping() { var el = document.getElementById('typingIndicator'); if (el) el.remove(); }
+
+  function sendMessage() {
+    if (isLoading) return;
+    if (!apiKey) { showApiModal(); return; }
+    var input = document.getElementById('userInput');
+    var text = input.value.trim();
+    if (!text) return;
+    appendMsg('user', text);
+    input.value = ''; input.style.height = 'auto';
+    chatHistory.push({ role: 'user', parts: [{ text: text }] });
+    isLoading = true;
+    document.getElementById('sendBtn').disabled = true;
+    showTyping();
+    callGemini(text).then(function(reply) {
+      hideTyping(); appendMsg('ai', reply);
+      chatHistory.push({ role: 'model', parts: [{ text: reply }] });
+    }).catch(function(err) {
+      hideTyping(); appendMsg('ai', 'Hata: ' + err.message);
+    }).finally(function() {
+      isLoading = false;
+      document.getElementById('sendBtn').disabled = false;
+    });
+  }
+
+  function callGemini(userMessage) {
+    var readyDocs = documents.filter(function(d) { return d.status === 'ready'; });
+
+    var tavilyPromise = Promise.resolve('');
+    if (tavilyKey) {
+      tavilyPromise = fetch('https://api.tavily.com/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ api_key: tavilyKey, query: userMessage + ' dis hekimligi', search_depth: 'basic', max_results: 3, include_answer: true })
+      }).then(function(r) { return r.ok ? r.json() : null; })
+        .then(function(d) {
+          if (!d) return '';
+          if (d.answer) return d.answer;
+          if (d.results && d.results.length) return d.results.map(function(r) { return r.content; }).join('\n\n');
+          return '';
+        }).catch(function() { return ''; });
+    }
+
+    return tavilyPromise.then(function(webContext) {
+      var systemText = 'Sen uzman bir dis hekimligi asistanisin. Turkce ve Ingilizce sorulara yanit verebilirsin.\n\n' +
+        'GOREV:\n' +
+        '1. Once yuklenen kaynaklara bak. Yeterli bilgi varsa YALNIZCA oradan cevap ver.\n' +
+        '2. Kaynaklarda bilgi yoksa/eksikse, web bilgisini dogal ifadelerle kullan.\n' +
+        '3. Kaynaklar ile web bilgisi celisiyorsa KAYNAKLAR her zaman esas alinir.\n' +
+        '4. Asla bilgi uydurma.\n\n';
+
+      if (webContext) systemText += '=== WEB ARAMA SONUCU (tamamlayici) ===\n' + webContext + '\n\n';
+
+      var userParts = [];
+      if (!readyDocs.length) {
+        systemText += 'Hic kaynak yuklenmemis. Kullaniciya kaynak eklemesini soyle.';
+      } else {
+        systemText += '=== MEVCUT KAYNAKLAR (' + readyDocs.length + ' adet) ===\n';
+        readyDocs.filter(function(d) { return d.type === 'text'; }).forEach(function(d) {
+          systemText += '\n--- ' + d.name + ' ---\n' + d.content.substring(0, 10000) + '\n';
+        });
+        readyDocs.filter(function(d) { return d.type === 'pdf'; }).forEach(function(d) {
+          userParts.push({ inlineData: { mimeType: 'application/pdf', data: d.content.split(',')[1] } });
+        });
+        readyDocs.filter(function(d) { return d.type === 'image'; }).forEach(function(d) {
+          userParts.push({ text: '[Gorsel: ' + d.name + ']' });
+          userParts.push({ inlineData: { mimeType: d.mimeType || 'image/jpeg', data: d.content.split(',')[1] } });
+        });
+      }
+      userParts.push({ text: userMessage });
+
+      var history = chatHistory.slice(0, -1).map(function(h) { return { role: h.role, parts: h.parts }; });
+      var body = {
+        system_instruction: { parts: [{ text: systemText }] },
+        contents: history.concat([{ role: 'user', parts: userParts }]),
+        generationConfig: { temperature: 0.3, maxOutputTokens: 2048 }
+      };
+      var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + GEMINI_MODEL + ':generateContent?key=' + apiKey;
+      return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        .then(function(r) {
+          if (!r.ok) return r.json().then(function(e) { throw new Error(e.error && e.error.message ? e.error.message : 'API hatasi'); });
+          return r.json();
+        }).then(function(data) {
+          var c = data.candidates && data.candidates[0];
+          if (!c) throw new Error('Yanit alinamadi');
+          return c.content.parts.map(function(p) { return p.text || ''; }).join('');
+        });
+    });
+  }
+
+})();
+</script>
+</body>
+</html>
