@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DentAI Asistan</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap');
+  :root{--bg:#f4f1ec;--surface:#fffef9;--border:#e2ddd4;--accent:#1a5c4a;--accent-light:#d4ede6;--accent2:#c4773b;--text:#1c1a17;--text-muted:#7a7570;--danger:#b84040;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
+  nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;}
+  .logo{font-family:'DM Serif Display',serif;font-size:20px;color:var(--accent);}
+  .logo span{color:var(--accent2);}
+  .nav-right{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .tab-btn{padding:6px 14px;border-radius:8px;border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:500;color:var(--text-muted);cursor:pointer;transition:all .2s;}
+  .tab-btn.active{background:var(--accent);color:#fff;}
+  .tab-btn:hover:not(.active){background:var(--accent-light);color:var(--accent);}
+  .api-btn{font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--text-muted);cursor:pointer;transition:all .2s;}
+  .api-btn.set{background:var(--accent-light);color:var(--accent);border-color:var(--accent);}
+  .page{display:none;flex:1;padding:20px 16px;max-width:820px;margin:0 auto;width:100%;}
+  .page.active{display:flex;flex-direction:column;}
+  .chat-wrapper{display:flex;flex-direction:column;height:calc(100vh - 56px - 40px);}
+  .chat-messages{flex:1;overflow-y:auto;padding:16px 0;display:flex;flex-direction:column;gap:14px;scroll-behavior:smooth;}
+  .msg{display:flex;gap:10px;animation:fadeUp .3s ease both;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+  .msg.user{justify-content:flex-end;}
+  .msg.ai{justify-content:flex-start;}
+  .bubble{max-width:86%;padding:14px 18px;border-radius:18px;font-size:16px;line-height:1.9;font-weight:400;letter-spacing:0.01em;}
+  .bubble p{margin-bottom:10px;} .bubble p:last-child{margin-bottom:0;}
+  .bubble strong{font-weight:700;}
+  .bubble h3,.bubble h4{font-size:17px;font-weight:700;margin-bottom:6px;margin-top:10px;}
+  .bubble ul,.bubble ol{padding-left:20px;margin-bottom:8px;}
+  .bubble li{margin-bottom:4px;}
+  .msg.ai .bubble{background:var(--surface);border:1px solid var(--border);border-top-left-radius:4px;font-size:16px;line-height:1.95;}
+  .msg.user .bubble{background:var(--accent);color:#fff;border-top-right-radius:4px;}
+  .stop-btn{width:46px;height:46px;border-radius:12px;border:none;background:#b84040;color:#fff;cursor:pointer;font-size:18px;transition:background .2s;flex-shrink:0;}
+  .stop-btn:hover{background:#8a2020;}
+  .typing-logo{display:flex;align-items:center;justify-content:center;padding:6px 0;}
+  .typing-logo span{font-size:28px;animation:pulse 1.2s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{transform:scale(0.85);opacity:0.6;}50%{transform:scale(1.15);opacity:1;}}
+  .chat-input-area{padding:10px 0 0;border-top:1px solid var(--border);}
+  .no-docs-warning{background:#fff8f0;border:1px solid #f0d9b5;color:#8a5a20;border-radius:10px;padding:9px 13px;font-size:13px;margin-bottom:10px;}
+  .input-row{display:flex;gap:8px;align-items:flex-end;}
+  textarea{flex:1;border:1.5px solid var(--border);border-radius:12px;padding:11px 13px;font-family:'DM Sans',sans-serif;font-size:14px;resize:none;background:var(--surface);color:var(--text);transition:border-color .2s;max-height:120px;min-height:46px;}
+  textarea:focus{outline:none;border-color:var(--accent);}
+  .send-btn{width:46px;height:46px;border-radius:12px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-size:20px;transition:background .2s;flex-shrink:0;}
+  .send-btn:hover{background:#134d3d;}
+  .send-btn:disabled{background:var(--border);cursor:not-allowed;}
+  .section-card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px;}
+  .section-card h3{font-size:14px;font-weight:600;margin-bottom:3px;color:var(--text);}
+  .section-card .desc{font-size:12px;color:var(--text-muted);margin-bottom:12px;line-height:1.5;}
+  .add-row{display:flex;gap:8px;margin-bottom:4px;}
+  .add-row input{flex:1;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--bg);color:var(--text);}
+  .add-row input:focus{outline:none;border-color:var(--accent);}
+  .add-btn{padding:9px 16px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;}
+  .add-btn:hover{background:#134d3d;}
+  .refresh-btn{width:100%;padding:9px;border-radius:10px;border:1.5px solid var(--accent);background:transparent;color:var(--accent);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;margin-top:10px;transition:all .2s;}
+  .refresh-btn:hover{background:var(--accent-light);}
+  .refresh-btn:disabled{opacity:.5;cursor:not-allowed;}
+  .drive-list{display:flex;flex-direction:column;gap:7px;margin-top:10px;}
+  .drive-item{background:var(--bg);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;}
+  .drive-item-info{flex:1;min-width:0;}
+  .drive-item-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .drive-item-status{font-size:11px;margin-top:2px;}
+  .drive-item-status.ok{color:var(--accent);}
+  .drive-item-status.loading{color:#b07020;}
+  .drive-item-status.error{color:var(--danger);}
+  .del-btn{background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px;padding:4px;border-radius:6px;flex-shrink:0;}
+  .del-btn:hover{color:var(--danger);}
+  .upload-zone{border:2px dashed var(--border);border-radius:14px;padding:24px;text-align:center;background:var(--surface);cursor:pointer;transition:border-color .2s,background .2s;margin-bottom:14px;}
+  .upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:var(--accent-light);}
+  .upload-zone p{font-size:13px;font-weight:600;margin-bottom:4px;}
+  .upload-zone small{font-size:11.5px;color:var(--text-muted);}
+  #fileInput{display:none;}
+  .doc-list{display:flex;flex-direction:column;gap:9px;}
+  .doc-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;animation:fadeUp .3s ease both;}
+  .doc-info{flex:1;min-width:0;}
+  .doc-name{font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .doc-meta{font-size:11px;color:var(--text-muted);margin-top:2px;}
+  .doc-badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;white-space:nowrap;}
+  .doc-badge.ready{background:var(--accent-light);color:var(--accent);}
+  .doc-badge.loading{background:#fef3e2;color:#b07020;}
+  .doc-badge.drive{background:#e8f0fe;color:#1a73e8;}
+  .empty-state{text-align:center;padding:28px;color:var(--text-muted);font-size:13px;}
+  .typing{display:flex;gap:5px;align-items:center;padding:4px 0;}
+  .typing span{width:7px;height:7px;border-radius:50%;background:var(--text-muted);animation:bounce 1.2s infinite;}
+  .typing span:nth-child(2){animation-delay:.2s;}
+  .typing span:nth-child(3){animation-delay:.4s;}
+  @keyframes bounce{0%,60%,100%{transform:translateY(0);}30%{transform:translateY(-6px);}}
+  .modal-overlay{position:fixed;inset:0;background:rgba(28,26,23,.5);display:flex;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(4px);}
+  .modal{background:var(--surface);border-radius:20px;padding:28px;max-width:420px;width:92%;box-shadow:0 20px 60px rgba(0,0,0,.15);}
+  .modal h3{font-family:'DM Serif Display',serif;font-size:21px;color:var(--accent);margin-bottom:6px;}
+  .modal p{font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.6;}
+  .modal input{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:10px 13px;font-family:'DM Sans',sans-serif;font-size:14px;margin-bottom:8px;background:var(--bg);color:var(--text);}
+  .modal input:focus{outline:none;border-color:var(--accent);}
+  .modal-btn{width:100%;padding:11px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px;}
+  .modal-btn:hover{background:#134d3d;}
+  .modal-note{font-size:11.5px;color:var(--text-muted);text-align:center;}
+  .modal-link{color:var(--accent);text-decoration:none;font-weight:500;}
+  .modal-steps{font-size:12px;background:var(--bg);border-radius:10px;padding:12px;margin-bottom:14px;line-height:2;color:var(--text-muted);}
+  .modal-steps b{color:var(--text);}
+  .cancel-btn{width:100%;padding:8px;border-radius:10px;border:1px solid var(--border);background:transparent;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;color:var(--text-muted);}
+  .scrollbar::-webkit-scrollbar{width:4px;}
+  .scrollbar::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px;}
+
+  /* DRAWER */
+  .drawer-overlay{position:fixed;inset:0;background:rgba(28,26,23,.45);z-index:150;display:none;backdrop-filter:blur(2px);}
+  .drawer-overlay.open{display:block;}
+  .drawer{position:fixed;top:0;left:-260px;width:240px;height:100vh;background:var(--surface);border-right:1px solid var(--border);z-index:160;transition:left .28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;padding:0;}
+  .drawer.open{left:0;}
+  .drawer-header{padding:18px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+  .drawer-logo{font-family:'DM Serif Display',serif;font-size:22px;color:var(--accent);}
+  .drawer-logo span{color:var(--accent2);}
+  .drawer-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-muted);padding:4px;}
+  .drawer-items{padding:14px 12px;display:flex;flex-direction:column;gap:6px;}
+  .drawer-item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:500;color:var(--text-muted);cursor:pointer;text-align:left;transition:all .18s;}
+  .drawer-item:hover{background:var(--accent-light);color:var(--accent);}
+  .drawer-item.active-drawer{background:var(--accent-light);color:var(--accent);}
+  .drawer-item-icon{font-size:18px;width:24px;text-align:center;}
+  .hamburger{background:none;border:none;cursor:pointer;padding:6px;color:var(--text);display:flex;flex-direction:column;gap:5px;border-radius:8px;}
+  .hamburger:hover{background:var(--accent-light);}
+  .hamburger span{display:block;width:22px;height:2px;background:currentColor;border-radius:2px;transition:all .2s;}
+
+  /* RANDEVU TAKVİM */
+  .rdv-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;}
+  .rdv-title-area{display:flex;align-items:center;gap:8px;flex:1;justify-content:center;flex-wrap:wrap;}
+  .rdv-nav-btn{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;font-size:16px;color:var(--text);flex-shrink:0;}
+  .rdv-view-btn{padding:5px 14px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--text-muted);cursor:pointer;}
+  .rdv-view-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .rdv-date-label{font-size:13px;font-weight:600;color:var(--text);}
+  .rdv-calendar{flex:1;overflow-y:auto;}
+  .rdv-day-col{display:flex;flex-direction:column;gap:0;}
+  .rdv-week-grid{display:grid;gap:6px;}
+  .rdv-week-header{display:grid;gap:6px;margin-bottom:4px;}
+  .rdv-week-day-label{text-align:center;font-size:11px;font-weight:600;color:var(--text-muted);padding:4px 0;}
+  .rdv-slot{min-height:32px;border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:12px;background:var(--surface);cursor:pointer;display:flex;align-items:flex-start;flex-direction:column;position:relative;transition:background .15s;}
+  .rdv-slot:hover{background:var(--accent-light);}
+  .rdv-slot.has-appt{background:#d4ede6;border-color:var(--accent);}
+  .rdv-slot-time{font-size:10px;color:var(--text-muted);font-weight:500;}
+  .rdv-slot-name{font-size:12px;font-weight:600;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+  .rdv-slot-islem{font-size:10px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+  .rdv-modal-overlay{position:fixed;inset:0;background:rgba(28,26,23,.5);display:flex;align-items:flex-end;justify-content:center;z-index:300;backdrop-filter:blur(4px);}
+  .rdv-modal{background:var(--surface);border-radius:20px 20px 0 0;padding:24px 20px;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;}
+  .rdv-modal h3{font-family:'DM Serif Display',serif;font-size:18px;color:var(--accent);margin-bottom:16px;}
+  .rdv-form-row{margin-bottom:12px;}
+  .rdv-form-row label{display:block;font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:4px;}
+  .rdv-form-row input,.rdv-form-row textarea,.rdv-form-row select{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:14px;background:var(--bg);color:var(--text);}
+  .rdv-form-row input:focus,.rdv-form-row textarea:focus{outline:none;border-color:var(--accent);}
+  .rdv-btn-row{display:flex;gap:8px;margin-top:16px;}
+  .rdv-save-btn{flex:1;padding:11px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;}
+  .rdv-del-btn{padding:11px 16px;border-radius:10px;border:none;background:#fde8e8;color:var(--danger);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;}
+  .rdv-cancel-btn{padding:11px 16px;border-radius:10px;border:1.5px solid var(--border);background:transparent;font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer;color:var(--text-muted);}
+  .admin-title{font-family:'DM Serif Display',serif;font-size:22px;color:var(--accent);margin-bottom:4px;}
+  .admin-sub{font-size:12.5px;color:var(--text-muted);margin-bottom:16px;}
+</style>
+</head>
+<body>
+
+<!-- GEMINI MODAL -->
+<div class="modal-overlay" id="apiModal">
+  <div class="modal">
+    <h3>DentAI &mdash; Gemini API</h3>
+    <div class="modal-steps">
+      <b>1.</b> <a class="modal-link" href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com/app/apikey</a><br>
+      <b>2.</b> "Create API Key" butonuna tiklayin<br>
+      <b>3.</b> Anahtari kopyalayip asagiya yapistirin
+    </div>
+    <p>Ucretsiz katman: gunde 1.500 istek.</p>
+    <input type="password" id="apiKeyInput" placeholder="AIza..." autocomplete="off">
+    <button class="modal-btn" id="apiSaveBtn">Basla</button>
+    <p class="modal-note">Anahtar yalnizca bu cihazda saklanir</p>
+  </div>
+</div>
+
+<!-- TAVILY MODAL -->
+<div class="modal-overlay" id="tavilyModal" style="display:none">
+  <div class="modal">
+    <h3>Web Arama &mdash; Tavily</h3>
+    <div class="modal-steps">
+      <b>1.</b> <a class="modal-link" href="https://app.tavily.com" target="_blank">app.tavily.com</a> adresine gidin<br>
+      <b>2.</b> Giris yapin, API Keys bolumunden anahtari kopyalayin
+    </div>
+    <p>Kaynaklarinizda olmayan bilgiler icin web arama yapar. Aylik 1.000 arama ucretsiz.</p>
+    <input type="password" id="tavilyKeyInput" placeholder="tvly-..." autocomplete="off">
+    <button class="modal-btn" id="tavSaveBtn">Kaydet</button>
+    <button class="cancel-btn" id="tavCancelBtn">Simdi degil</button>
+  </div>
+</div>
+
+<!-- DRAWER OVERLAY -->
+<div class="drawer-overlay" id="drawerOverlay"></div>
+
+<!-- DRAWER -->
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <div class="drawer-logo">Dent<span>AI</span></div>
+    <button class="drawer-close" id="drawerClose">✕</button>
+  </div>
+  <div class="drawer-items">
+    <button class="drawer-item" id="drawerGemini">
+      <span class="drawer-item-icon">🔑</span> Gemini API
+    </button>
+    <button class="drawer-item" id="drawerTavily">
+      <span class="drawer-item-icon">🌐</span> Web Arama
+    </button>
+    <button class="drawer-item" id="drawerKaynaklar">
+      <span class="drawer-item-icon">📁</span> Kaynaklar
+    </button>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <button class="hamburger" id="hamburgerBtn">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="logo">Dent<span>AI</span></div>
+  </div>
+  <div class="nav-right">
+    <button class="tab-btn active" id="tabChat">Asistan</button>
+    <button class="tab-btn" id="tabRandevu">Randevu</button>
+  </div>
+</nav>
+
+<!-- CHAT PAGE -->
+<div class="page active" id="chatPage">
+  <div class="chat-wrapper">
+    <div class="chat-messages scrollbar" id="chatMessages">
+      <div class="msg ai">
+        <div class="bubble">🦷 Merhaba! Ben <strong>DentAI</strong>, diş hekimliği asistanınızım. Kaynaklarınıza dayanarak sorularınızı yanıtlarım. Nasıl yardımcı olabilirim?</div>
+      </div>
+    </div>
+    <div class="chat-input-area">
+      <div class="no-docs-warning" id="noDocsWarn" style="display:none">Henuz kaynak yuklenmedi. Kaynaklar sekmesinden dosya veya Drive linki ekleyin.</div>
+      <div class="input-row">
+        <textarea id="userInput" placeholder="Sorunuzu yazin..." rows="1"></textarea>
+        <button class="send-btn" id="sendBtn">&#9658;</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN PAGE -->
+<div class="page" id="adminPage">
+  <div class="admin-title">Kaynak Yonetimi</div>
+  <div class="admin-sub">Dosyalari buradan ekleyin. Uygulama her acilista Drive kaynaklarini otomatik yukler.</div>
+
+  <!-- DRIVE SECTION -->
+  <div class="section-card">
+    <h3>Google Drive Kaynaklari</h3>
+    <div class="desc">Drive'daki dosyalarin linkini yapistirin. Her acilista otomatik yuklenir.</div>
+    <div class="add-row">
+      <input type="url" id="driveUrlInput" placeholder="https://docs.google.com/... veya drive.google.com/file/...">
+      <button class="add-btn" id="driveAddBtn">Ekle</button>
+    </div>
+    <div class="drive-list" id="driveList"></div>
+    <button class="refresh-btn" id="refreshDriveBtn">Tum Drive Kaynaklarini Yenile</button>
+  </div>
+
+  <!-- UPLOAD SECTION -->
+  <div class="section-card">
+    <h3>Manuel Dosya Yukleme</h3>
+    <div class="desc">Bu oturumda gecerli. Sayfa kapatilinca silinir.</div>
+    <div class="upload-zone" id="uploadZone">
+      <p>Dosya yuklemek icin tiklayin</p>
+      <small>PDF, TXT, DOCX, PPT/PPTX, JPG, PNG, WEBP</small>
+    </div>
+    <input type="file" id="fileInput" accept=".pdf,.txt,.docx,.jpg,.jpeg,.png,.webp,.ppt,.pptx" multiple>
+  </div>
+
+  <div id="docList" class="doc-list"></div>
+</div>
+
+<!-- RANDEVU PAGE -->
+<div class="page" id="randevuPage">
+  <div class="rdv-header">
+    <button class="rdv-nav-btn" id="rdvPrev">&#8592;</button>
+    <div class="rdv-title-area">
+      <button class="rdv-view-btn active" id="rdvGunBtn">Gunluk</button>
+      <button class="rdv-view-btn" id="rdvHaftaBtn">Haftalik</button>
+      <span class="rdv-date-label" id="rdvDateLabel"></span>
+    </div>
+    <button class="rdv-nav-btn" id="rdvNext">&#8594;</button>
+  </div>
+  <div class="rdv-calendar" id="rdvCalendar"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+(function() {
+  var GEMINI_MODEL = 'gemini-2.5-flash';
+  var apiKey = localStorage.getItem('dentai_gemini_key') || '';
+  var tavilyKey = localStorage.getItem('dentai_tavily_key') || '';
+  var documents = [];
+  var chatHistory = [];
+  var isLoading = false;
+  var IMAGE_TYPES = ['image/jpeg','image/png','image/webp','image/gif'];
+  var PPTX_TYPES = ['application/vnd.openxmlformats-officedocument.presentationml.presentation','application/vnd.ms-powerpoint'];
+
+  // Drive linklerini localStorage'dan yukle (sadece manuel eklenenler)
+  var driveLinks = JSON.parse(localStorage.getItem('dentai_drive_links') || '[]').filter(function(l) { return !l.isDefault; });
+  // [{id, name, url, fileId}]
+
+  // ── INIT ──
+  window.addEventListener('load', function() {
+    if (apiKey) {
+      document.getElementById('apiModal').style.display = 'none';
+    }
+
+    document.getElementById('apiSaveBtn').addEventListener('click', saveApiKey);
+    document.getElementById('tavSaveBtn').addEventListener('click', saveTavilyKey);
+    document.getElementById('tavCancelBtn').addEventListener('click', function() { document.getElementById('tavilyModal').style.display = 'none'; });
+    document.getElementById('tabChat').addEventListener('click', function() { switchTab('chat', this); });
+    document.getElementById('tabRandevu').addEventListener('click', function() { switchTab('randevu', this); loadRandevuView(); });
+
+    // Drawer
+    document.getElementById('hamburgerBtn').addEventListener('click', function() {
+      document.getElementById('drawer').classList.add('open');
+      document.getElementById('drawerOverlay').classList.add('open');
+    });
+    function closeDrawer() {
+      document.getElementById('drawer').classList.remove('open');
+      document.getElementById('drawerOverlay').classList.remove('open');
+    }
+    document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+    document.getElementById('drawerOverlay').addEventListener('click', closeDrawer);
+    document.getElementById('drawerGemini').addEventListener('click', function() { closeDrawer(); showApiModal(); });
+    document.getElementById('drawerTavily').addEventListener('click', function() { closeDrawer(); showTavilyModal(); });
+    document.getElementById('drawerKaynaklar').addEventListener('click', function() {
+      closeDrawer();
+      document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+      document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+      document.getElementById('adminPage').classList.add('active');
+    });
+    document.getElementById('sendBtn').addEventListener('click', sendMessage);
+    document.getElementById('userInput').addEventListener('keydown', handleKey);
+    document.getElementById('userInput').addEventListener('input', function() { autoResize(this); });
+    document.getElementById('uploadZone').addEventListener('click', function() { document.getElementById('fileInput').click(); });
+    document.getElementById('uploadZone').addEventListener('dragover', dragOver);
+    document.getElementById('uploadZone').addEventListener('dragleave', dragLeave);
+    document.getElementById('uploadZone').addEventListener('drop', dropFile);
+    document.getElementById('fileInput').addEventListener('change', handleFiles);
+    document.getElementById('driveAddBtn').addEventListener('click', addDriveLink);
+    document.getElementById('refreshDriveBtn').addEventListener('click', function() { loadAllDriveFiles(true); });
+    document.getElementById('driveUrlInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') addDriveLink(); });
+
+    loadDefaultFolder();
+    renderDriveList();
+    loadAllDriveFiles(false);
+    updateNoDocsWarning();
+  });
+
+  // ── API MODALS ──
+  function showApiModal() { document.getElementById('apiKeyInput').value = ''; document.getElementById('apiModal').style.display = 'flex'; }
+  function saveApiKey() {
+    var val = document.getElementById('apiKeyInput').value.trim();
+    if (!val) { alert('Lutfen API anahtarinizi girin.'); return; }
+    apiKey = val;
+    localStorage.setItem('dentai_gemini_key', val);
+    document.getElementById('apiModal').style.display = 'none';
+    updateNoDocsWarning();
+  }
+  function showTavilyModal() { document.getElementById('tavilyKeyInput').value = ''; document.getElementById('tavilyModal').style.display = 'flex'; }
+  function saveTavilyKey() {
+    var val = document.getElementById('tavilyKeyInput').value.trim();
+    if (!val) { alert('Lutfen Tavily anahtarinizi girin.'); return; }
+    tavilyKey = val;
+    localStorage.setItem('dentai_tavily_key', val);
+    document.getElementById('tavilyModal').style.display = 'none';
+  }
+
+  // ── TABS ──
+  function switchTab(tab, btn) {
+    document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.getElementById(tab + 'Page').classList.add('active');
+    btn.classList.add('active');
+    if (tab === 'chat') updateNoDocsWarning();
+    if (tab === 'randevu') loadRandevuView();
+  }
+  function updateNoDocsWarning() {
+    var hasDocs = documents.length > 0 || driveLinks.length > 0;
+    document.getElementById('noDocsWarn').style.display = hasDocs ? 'none' : 'block';
+  }
+
+  // ── DRIVE LINK YONETIMI ──
+  function extractDriveId(url) {
+    // Klasor
+    var m = url.match(/folders\/([a-zA-Z0-9_-]{10,})/);
+    if (m) return { id: m[1], isFolder: true };
+    // Dosya
+    m = url.match(/\/d\/([a-zA-Z0-9_-]{10,})/);
+    if (m) return { id: m[1], isFolder: false };
+    m = url.match(/id=([a-zA-Z0-9_-]{10,})/);
+    if (m) return { id: m[1], isFolder: false };
+    m = url.match(/document\/d\/([a-zA-Z0-9_-]{10,})/);
+    if (m) return { id: m[1], isFolder: false };
+    m = url.match(/spreadsheets\/d\/([a-zA-Z0-9_-]{10,})/);
+    if (m) return { id: m[1], isFolder: false };
+    m = url.match(/presentation\/d\/([a-zA-Z0-9_-]{10,})/);
+    if (m) return { id: m[1], isFolder: false };
+    return null;
+  }
+
+  function addDriveLink() {
+    var url = document.getElementById('driveUrlInput').value.trim();
+    if (!url) return;
+    var parsed = extractDriveId(url);
+    if (!parsed) { alert('Gecersiz Drive linki.'); return; }
+
+    if (parsed.isFolder) {
+      // Klasor ekle - once icerik listesini cek
+      var btn = document.getElementById('driveAddBtn');
+      btn.disabled = true; btn.textContent = 'Yukleniyor...';
+      var scriptUrl = APPS_SCRIPT_URL + '?folderId=' + encodeURIComponent(parsed.id);
+      fetch(scriptUrl)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.error) { alert('Klasor okunamadi: ' + data.error); return; }
+          var files = data.files || [];
+          if (!files.length) { alert('Klasorde dosya bulunamadi.'); return; }
+          files.forEach(function(f) {
+            var already = driveLinks.some(function(l) { return l.fileId === f.id; });
+            if (!already) {
+              var link = { id: Date.now() + Math.random(), name: f.name, url: url, fileId: f.id, isFolder: false };
+              driveLinks.push(link);
+              fetchDriveFile(link);
+            }
+          });
+          saveDriveLinks();
+          renderDriveList();
+          updateNoDocsWarning();
+        })
+        .catch(function(e) { alert('Hata: ' + e.message); })
+        .finally(function() { btn.disabled = false; btn.textContent = 'Ekle'; });
+    } else {
+      var already = driveLinks.some(function(l) { return l.fileId === parsed.id; });
+      if (already) { alert('Bu dosya zaten ekli.'); return; }
+      var link = { id: Date.now(), name: 'Dosya_' + parsed.id.slice(0,6), url: url, fileId: parsed.id };
+      driveLinks.push(link);
+      saveDriveLinks();
+      renderDriveList();
+      fetchDriveFile(link);
+      updateNoDocsWarning();
+    }
+    document.getElementById('driveUrlInput').value = '';
+  }
+
+  function removeDriveLink(id) {
+    driveLinks = driveLinks.filter(function(l) { return l.id !== id; });
+    documents = documents.filter(function(d) { return d.driveId !== id; });
+    saveDriveLinks();
+    renderDriveList();
+    renderDocList();
+    updateNoDocsWarning();
+  }
+  window.removeDriveLink = removeDriveLink;
+
+  function saveDriveLinks() {
+    localStorage.setItem('dentai_drive_links', JSON.stringify(driveLinks));
+  }
+
+  function renderDriveList() {
+    var el = document.getElementById('driveList');
+    if (!driveLinks.length) {
+      el.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:6px 0;">Henuz Drive linki eklenmedi.</div>';
+      return;
+    }
+    el.innerHTML = driveLinks.map(function(l) {
+      var doc = documents.find(function(d) { return d.driveId === l.id; });
+      var statusText = 'Bekleniyor...';
+      var statusClass = 'loading';
+      if (doc) {
+        if (doc.status === 'ready') { statusText = 'Yuklendi'; statusClass = 'ok'; }
+        else if (doc.status === 'error') { statusText = 'Yuklenemedi'; statusClass = 'error'; }
+        else { statusText = 'Yukleniyor...'; statusClass = 'loading'; }
+      }
+      return '<div class="drive-item">' +
+        '<div class="drive-item-info">' +
+          '<div class="drive-item-name">' + l.name + '</div>' +
+          '<div class="drive-item-status ' + statusClass + '">' + statusText + '</div>' +
+        '</div>' +
+        '<button class="del-btn" onclick="removeDriveLink(' + l.id + ')">&#10005;</button>' +
+      '</div>';
+    }).join('');
+  }
+
+  function loadAllDriveFiles(force) {
+    var btn = document.getElementById('refreshDriveBtn');
+    btn.disabled = true;
+    btn.textContent = 'Yukleniyor...';
+    var promises = driveLinks.map(function(link) {
+      var existing = documents.find(function(d) { return d.driveId === link.id && d.status === 'ready'; });
+      if (existing && !force) return Promise.resolve();
+      return fetchDriveFile(link);
+    });
+    Promise.all(promises).then(function() {
+      btn.disabled = false;
+      btn.textContent = 'Tum Drive Kaynaklarini Yenile';
+    });
+  }
+
+  var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwY12jcAyVkfOKkZxtCXFQoiPn4lt19-HkpDWVqddA1UF-s7fev_EMEeJA4vmtdmNxh6w/exec';
+  var DEFAULT_FOLDER_ID = '1LvX8g4F3OrwUT7usmu897F-ohYZR5olo';
+
+  function loadDefaultFolder() {
+    fetch(APPS_SCRIPT_URL + '?folderId=' + DEFAULT_FOLDER_ID)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.error || !data.files) return;
+        data.files.forEach(function(f) {
+          var already = driveLinks.some(function(l) { return l.fileId === f.id; });
+          if (!already) {
+            var link = { id: Date.now() + Math.random(), name: f.name, fileId: f.id, url: '', isDefault: true };
+            driveLinks.push(link);
+            fetchDriveFile(link);
+          }
+        });
+        renderDriveList();
+        updateNoDocsWarning();
+      })
+      .catch(function() {});
+  }
+
+  function fetchDriveFile(link) {
+    var existing = documents.find(function(d) { return d.driveId === link.id; });
+    var doc;
+    if (existing) {
+      doc = existing;
+      doc.status = 'loading';
+    } else {
+      doc = { id: Date.now() + Math.random(), driveId: link.id, name: link.name, size: 0, content: '', status: 'loading', type: 'text', source: 'drive' };
+      documents.push(doc);
+    }
+    renderDriveList();
+    renderDocList();
+
+    var scriptUrl = APPS_SCRIPT_URL + '?fileId=' + encodeURIComponent(link.fileId);
+
+    return fetch(scriptUrl)
+      .then(function(res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then(function(data) {
+        if (data.error) throw new Error(data.error);
+        doc.name = data.name || link.name;
+        link.name = doc.name;
+        saveDriveLinks();
+        if (data.type === 'pdf') {
+          doc.content = 'data:application/pdf;base64,' + data.content;
+          doc.type = 'pdf';
+        } else if (data.type === 'image') {
+          doc.content = 'data:' + (data.mimeType || 'image/jpeg') + ';base64,' + data.content;
+          doc.type = 'image';
+          doc.mimeType = data.mimeType || 'image/jpeg';
+        } else if (data.type === 'docx') {
+          var binary = atob(data.content);
+          var bytes = new Uint8Array(binary.length);
+          for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+          return JSZip.loadAsync(bytes.buffer).then(function(zip) {
+            var f = zip.file('word/document.xml');
+            if (!f) { doc.content = '(DOCX okunamadi)'; doc.type = 'text'; return; }
+            return f.async('string').then(function(xml) {
+              doc.content = xml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+              doc.type = 'text';
+            });
+          }).then(function() { doc.status = 'ready'; renderDriveList(); renderDocList(); updateNoDocsWarning(); });
+        } else if (data.type === 'pptx') {
+          var binary2 = atob(data.content);
+          var bytes2 = new Uint8Array(binary2.length);
+          for (var i = 0; i < binary2.length; i++) bytes2[i] = binary2.charCodeAt(i);
+          return JSZip.loadAsync(bytes2.buffer).then(function(zip) {
+            var slides = Object.keys(zip.files).filter(function(n) { return n.indexOf('ppt/slides/slide') === 0 && n.indexOf('.xml') > 0; }).sort();
+            var promises = slides.map(function(s, idx) {
+              return zip.file(s).async('string').then(function(xml) {
+                return '[Slayt ' + (idx+1) + ']: ' + xml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+              });
+            });
+            return Promise.all(promises).then(function(parts) { doc.content = parts.join('\n'); doc.type = 'text'; });
+          }).then(function() { doc.status = 'ready'; renderDriveList(); renderDocList(); updateNoDocsWarning(); });
+        } else {
+          doc.content = data.content;
+          doc.type = 'text';
+        }
+        doc.status = 'ready';
+        renderDriveList();
+        renderDocList();
+        updateNoDocsWarning();
+      })
+      .catch(function(err) {
+        doc.status = 'error';
+        doc.content = '';
+        renderDriveList();
+        renderDocList();
+      });
+  }
+
+  // ── MANUEL DOSYA YUKLEME ──
+  function dragOver(e) { e.preventDefault(); document.getElementById('uploadZone').classList.add('drag'); }
+  function dragLeave() { document.getElementById('uploadZone').classList.remove('drag'); }
+  function dropFile(e) {
+    e.preventDefault();
+    document.getElementById('uploadZone').classList.remove('drag');
+    Array.from(e.dataTransfer.files).forEach(function(f) { processFile(f); });
+  }
+  function handleFiles(e) {
+    Array.from(e.target.files).forEach(function(f) { processFile(f); });
+    e.target.value = '';
+  }
+
+  function extractPptxText(file) {
+    return file.arrayBuffer().then(function(ab) { return JSZip.loadAsync(ab); }).then(function(zip) {
+      var slideFiles = Object.keys(zip.files).filter(function(f) { return f.indexOf('ppt/slides/slide') === 0 && f.indexOf('.xml') > 0; });
+      slideFiles.sort(function(a, b) { return parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]); });
+      return Promise.all(slideFiles.map(function(sf, i) {
+        return zip.files[sf].async('string').then(function(xml) {
+          var m = xml.match(/<a:t[^>]*>([^<]+)<\/a:t>/g) || [];
+          var s = m.map(function(x) { return x.replace(/<[^>]+>/g, ''); }).join(' ').trim();
+          return s ? '[Slayt ' + (i+1) + ']: ' + s : '';
+        });
+      })).then(function(parts) { return parts.filter(Boolean).join('\n') || '(Metin bulunamadi)'; });
+    });
+  }
+
+  function extractDocxText(file) {
+    return file.arrayBuffer().then(function(ab) { return JSZip.loadAsync(ab); })
+      .then(function(zip) { return zip.files['word/document.xml'].async('string'); })
+      .then(function(xml) {
+        return xml.replace(/<\/w:p>/g, '\n').replace(/<\/w:tr>/g, '\n').replace(/<[^>]+>/g, '').replace(/\n{3,}/g, '\n\n').trim();
+      });
+  }
+
+  function readFileContent(file, doc) {
+    var isPptx = file.name.endsWith('.pptx') || file.name.endsWith('.ppt') || PPTX_TYPES.indexOf(file.type) >= 0;
+    var isDocx = file.name.endsWith('.docx') || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    if (isPptx) {
+      return extractPptxText(file).then(function(t) { doc.content = t; doc.type = 'text'; doc.status = 'ready'; renderDocList(); }).catch(function() { doc.content = '(Okunamadi)'; doc.type = 'text'; doc.status = 'ready'; renderDocList(); });
+    }
+    if (isDocx) {
+      return extractDocxText(file).then(function(t) { doc.content = t; doc.type = 'text'; doc.status = 'ready'; renderDocList(); }).catch(function() { doc.content = '(Okunamadi)'; doc.type = 'text'; doc.status = 'ready'; renderDocList(); });
+    }
+    return new Promise(function(resolve) {
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) { doc.content = ev.target.result; doc.type = 'pdf'; }
+        else if (IMAGE_TYPES.indexOf(file.type) >= 0) { doc.content = ev.target.result; doc.type = 'image'; doc.mimeType = file.type; }
+        else { doc.content = ev.target.result; doc.type = 'text'; }
+        doc.status = 'ready'; renderDocList(); resolve();
+      };
+      (file.type === 'application/pdf' || file.name.endsWith('.pdf') || IMAGE_TYPES.indexOf(file.type) >= 0) ? reader.readAsDataURL(file) : reader.readAsText(file);
+    });
+  }
+
+  function processFile(file) {
+    var doc = { id: Date.now() + Math.random(), name: file.name, size: file.size, content: '', status: 'loading', type: 'text', source: 'manual' };
+    documents.push(doc); renderDocList();
+    readFileContent(file, doc).then(function() { updateNoDocsWarning(); });
+  }
+
+  function deleteDoc(id) {
+    documents = documents.filter(function(d) { return d.id !== id; });
+    renderDocList(); updateNoDocsWarning();
+  }
+  window.deleteDoc = deleteDoc;
+
+  function formatSize(b) {
+    if (!b) return '';
+    if (b < 1024) return b + ' B';
+    if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+    return (b/1048576).toFixed(1) + ' MB';
+  }
+
+  function renderDocList() {
+    var manualDocs = documents.filter(function(d) { return d.source === 'manual'; });
+    var el = document.getElementById('docList');
+    if (!manualDocs.length) { el.innerHTML = ''; return; }
+    el.innerHTML = manualDocs.map(function(d) {
+      return '<div class="doc-card">' +
+        '<div class="doc-info"><div class="doc-name">' + d.name + '</div><div class="doc-meta">' + formatSize(d.size) + '</div></div>' +
+        '<span class="doc-badge ' + d.status + '">' + (d.status === 'ready' ? 'Hazir' : 'Yukleniyor...') + '</span>' +
+        '<button class="del-btn" onclick="deleteDoc(' + d.id + ')">&#10005;</button></div>';
+    }).join('');
+  }
+
+  // ── CHAT ──
+  function handleKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+  function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px'; }
+
+  function renderMarkdown(text) {
+    var t = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    t = t.replace(/^#{1,3} (.+)$/gm, '<h3>&#x1F9B7; $1</h3>');
+    t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    t = t.replace(/\*([^*]+?)\*/g, '<em>$1</em>');
+    t = t.replace(/^---+$/gm, '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">');
+    t = t.replace(/^\* (.+)$/gm, '<li>$1</li>');
+    t = t.replace(/^- (.+)$/gm, '<li>$1</li>');
+    t = t.replace(/^[0-9]+\. (.+)$/gm, '<li>$1</li>');
+    t = t.replace(/(<li>[^<]*<\/li>\s*)+/g, function(m){ return '<ul>'+m+'</ul>'; });
+    t = t.split(/\n{2,}/).map(function(p){
+      p = p.trim();
+      if (!p || p.startsWith('<h') || p.startsWith('<ul') || p.startsWith('<hr')) return p;
+      return '<p>' + p.replace(/\n/g,'<br>') + '</p>';
+    }).join('');
+    return t;
+  }
+
+  function appendMsg(role, text) {
+    var box = document.getElementById('chatMessages');
+    var div = document.createElement('div');
+    div.className = 'msg ' + (role === 'user' ? 'user' : 'ai');
+    var html = role === 'user' ? text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : renderMarkdown(text);
+    div.innerHTML = '<div class="bubble">' + html + '</div>';
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+  function showTyping() {
+    var box = document.getElementById('chatMessages');
+    var div = document.createElement('div');
+    div.className = 'msg ai'; div.id = 'typingIndicator';
+    div.innerHTML = '<div class="bubble" style="background:transparent;border:none;padding:4px 0;"><div class="typing-logo"><span>🦷</span></div></div>';
+    box.appendChild(div); box.scrollTop = box.scrollHeight;
+  }
+  function hideTyping() { var el = document.getElementById('typingIndicator'); if (el) el.remove(); }
+
+  var currentAbort = null;
+  function stopMessage() {
+    if (currentAbort) { currentAbort.abort(); currentAbort = null; }
+  }
+  function sendMessage() {
+    if (isLoading) return;
+    if (!apiKey) { showApiModal(); return; }
+    var input = document.getElementById('userInput');
+    var text = input.value.trim();
+    if (!text) return;
+    appendMsg('user', text);
+    input.value = ''; input.style.height = 'auto';
+    chatHistory.push({ role: 'user', parts: [{ text: text }] });
+    isLoading = true;
+    var btn = document.getElementById('sendBtn');
+    btn.innerHTML = '&#9632;';
+    btn.className = 'stop-btn';
+    btn.onclick = function() { stopMessage(); };
+    showTyping();
+    currentAbort = new AbortController();
+    callGemini(text, currentAbort.signal).then(function(reply) {
+      hideTyping(); appendMsg('ai', reply);
+      chatHistory.push({ role: 'model', parts: [{ text: reply }] });
+    }).catch(function(err) {
+      hideTyping();
+      if (err.name !== 'AbortError') appendMsg('ai', '⚠️ ' + err.message + ' — Tekrar denemek için sorunuzu yeniden gönderin.');
+    }).finally(function() {
+      isLoading = false; currentAbort = null;
+      var btn2 = document.getElementById('sendBtn');
+      btn2.innerHTML = '&#9658;'; btn2.className = 'send-btn'; btn2.disabled = false;
+      btn2.onclick = null;
+    });
+  }
+
+  function callGemini(userMessage, signal) {
+    var readyDocs = documents.filter(function(d) { return d.status === 'ready'; });
+
+    var tavilyPromise = Promise.resolve('');
+    if (tavilyKey) {
+      tavilyPromise = fetch('https://api.tavily.com/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ api_key: tavilyKey, query: userMessage + ' dis hekimligi', search_depth: 'basic', max_results: 3, include_answer: true })
+      }).then(function(r) { return r.ok ? r.json() : null; })
+        .then(function(d) {
+          if (!d) return '';
+          if (d.answer) return d.answer;
+          if (d.results && d.results.length) return d.results.map(function(r) { return r.content; }).join('\n\n');
+          return '';
+        }).catch(function() { return ''; });
+    }
+
+    return tavilyPromise.then(function(webContext) {
+      var systemText = 'Sen uzman bir dis hekimligi asistanisin. Kullanici bir dis hekimidir, mesleki duzeyde cevap ver.\n' +
+        'Turkce ve Ingilizce sorulara yanit verebilirsin.\n\n' +
+        'GOREV:\n' +
+        '1. Once yuklenen kaynaklara bak. Yeterli bilgi varsa YALNIZCA oradan cevap ver.\n' +
+        '2. Kaynaklarda bilgi yoksa/eksikse, web bilgisini dogal ifadelerle kullan.\n' +
+        '3. Kaynaklar ile web bilgisi celisiyorsa KAYNAKLAR her zaman esas alinir.\n' +
+        '4. Asla bilgi uydurma.\n\n' +
+        'USLUP:\n' +
+        '- Ozlu ve dogru cevaplar ver. Gereksiz giris/kapanış cumlesi, tekrar ve dolgu yoktur.\n' +
+        '- Icerik gerektiriyorsa detayli olabilirsin ama her kelime islevsel olmali.\n' +
+        '- Hekim olan kullaniciya "doktorunuza danisin" gibi uyarilar EKLEME.\n' +
+        '- Cevabini asla yari birakma, mutlaka tamamla.\n\n';
+
+      if (webContext) systemText += '=== WEB ARAMA SONUCU (tamamlayici) ===\n' + webContext + '\n\n';
+
+      var userParts = [];
+      if (!readyDocs.length) {
+        systemText += 'Hic kaynak yuklenmemis. Kullaniciya kaynak eklemesini soyle.';
+      } else {
+        systemText += '=== MEVCUT KAYNAKLAR (' + readyDocs.length + ' adet) ===\n';
+        readyDocs.filter(function(d) { return d.type === 'text'; }).forEach(function(d) {
+          systemText += '\n--- ' + d.name + ' ---\n' + d.content.substring(0, 10000) + '\n';
+        });
+        readyDocs.filter(function(d) { return d.type === 'pdf'; }).forEach(function(d) {
+          userParts.push({ inlineData: { mimeType: 'application/pdf', data: d.content.split(',')[1] } });
+        });
+        readyDocs.filter(function(d) { return d.type === 'image'; }).forEach(function(d) {
+          userParts.push({ text: '[Gorsel: ' + d.name + ']' });
+          userParts.push({ inlineData: { mimeType: d.mimeType || 'image/jpeg', data: d.content.split(',')[1] } });
+        });
+      }
+      userParts.push({ text: userMessage });
+
+      var history = chatHistory.slice(0, -1).map(function(h) { return { role: h.role, parts: h.parts }; });
+      var body = {
+        system_instruction: { parts: [{ text: systemText }] },
+        contents: history.concat([{ role: 'user', parts: userParts }]),
+        generationConfig: { temperature: 0.3, maxOutputTokens: 8192 }
+      };
+      var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + GEMINI_MODEL + ':generateContent?key=' + apiKey;
+      return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: signal })
+        .then(function(r) {
+          if (!r.ok) return r.json().then(function(e) { throw new Error(e.error && e.error.message ? e.error.message : 'API hatasi'); });
+          return r.json();
+        }).then(function(data) {
+          var c = data.candidates && data.candidates[0];
+          if (!c) throw new Error('Yanit alinamadi');
+          return c.content.parts.map(function(p) { return p.text || ''; }).join('');
+        });
+    });
+  }
+
+  // ── RANDEVU TAKVİM ──
+  var DB_URL = 'https://script.google.com/macros/s/AKfycbwY12jcAyVkfOKkZxtCXFQoiPn4lt19-HkpDWVqddA1UF-s7fev_EMEeJA4vmtdmNxh6w/exec';
+  var rdvView = 'gun'; // 'gun' veya 'hafta'
+  var rdvDate = new Date();
+  rdvDate.setHours(0,0,0,0);
+  var rdvCache = []; // yuklu randevular
+
+  function fmtDate(d) {
+    var y = d.getFullYear();
+    var m = String(d.getMonth()+1).padStart(2,'0');
+    var day = String(d.getDate()).padStart(2,'0');
+    return y+'-'+m+'-'+day;
+  }
+  function fmtTime(h, m) { return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); }
+  var DAYS_TR = ['Paz','Pzt','Sal','Car','Per','Cum','Cmt'];
+  var MONTHS_TR = ['Ocak','Subat','Mart','Nisan','Mayis','Haziran','Temmuz','Agustos','Eylul','Ekim','Kasim','Aralik'];
+
+  function normalizeRandevular(list) {
+    return list.map(function(r) {
+      var t = r['Tarih'] || '';
+      var s = r['Saat'] || '';
+      // ISO string: "2026-03-11T00:00:00.000Z" → "2026-03-11"
+      if (typeof t === 'string' && t.length > 10) t = t.substring(0, 10);
+      // Saat ISO: "1899-12-30T11:00:00.000Z" → "11:00"
+      if (typeof s === 'string' && s.indexOf('T') > -1) {
+        var parts = s.split('T');
+        if (parts[1]) s = parts[1].substring(0, 5);
+      }
+      var norm = {};
+      for (var k in r) norm[k] = r[k];
+      norm['Tarih'] = t;
+      norm['Saat'] = s;
+      return norm;
+    });
+  }
+
+  function loadRandevuView() {
+    var label = document.getElementById('rdvDateLabel');
+    if (rdvView === 'gun') {
+      label.textContent = DAYS_TR[rdvDate.getDay()] + ' ' + rdvDate.getDate() + ' ' + MONTHS_TR[rdvDate.getMonth()];
+      var tarih = fmtDate(rdvDate);
+      fetch(DB_URL + '?action=getRandevular')
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          rdvCache = normalizeRandevular(d.randevular || []);
+          var filtered = rdvCache.filter(function(r) { return r['Tarih'] === tarih; });
+          renderGunluk(filtered, tarih);
+        })
+        .catch(function() { renderGunluk([], fmtDate(rdvDate)); });
+    } else {
+      var mon = new Date(rdvDate);
+      var day = mon.getDay();
+      var diff = day === 0 ? -6 : 1 - day;
+      mon.setDate(mon.getDate() + diff);
+      label.textContent = mon.getDate() + ' ' + MONTHS_TR[mon.getMonth()] + ' haftasi';
+      fetch(DB_URL + '?action=getRandevular')
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          rdvCache = normalizeRandevular(d.randevular || []);
+          var start = new Date(mon); start.setHours(0,0,0,0);
+          var end = new Date(mon); end.setDate(end.getDate()+6); end.setHours(23,59,59,999);
+          var filtered = rdvCache.filter(function(r) {
+            var rd = new Date(r['Tarih']); return rd >= start && rd <= end;
+          });
+          renderHaftalik(filtered, mon);
+        })
+        .catch(function() { renderHaftalik([], mon); });
+    }
+  }
+
+  function getSlots() {
+    var slots = [];
+    for (var h = 10; h < 22; h++) {
+      slots.push(fmtTime(h, 0));
+      slots.push(fmtTime(h, 30));
+    }
+    return slots;
+  }
+
+  function renderGunluk(randevular, tarih) {
+    var cal = document.getElementById('rdvCalendar');
+    var slots = getSlots();
+    var col = document.createElement('div');
+    col.className = 'rdv-day-col';
+    slots.forEach(function(slot) {
+      var saatHastalari = randevular.filter(function(r) { return r['Tarih'] === tarih && r['Saat'] === slot; });
+      var div = document.createElement('div');
+      div.className = 'rdv-slot' + (saatHastalari.length > 0 ? ' has-appt' : '');
+      var timeSpan = document.createElement('span');
+      timeSpan.className = 'rdv-slot-time';
+      timeSpan.textContent = slot;
+      div.appendChild(timeSpan);
+      if (saatHastalari.length > 0) {
+        saatHastalari.forEach(function(appt) {
+          var nameSpan = document.createElement('span');
+          nameSpan.className = 'rdv-slot-name';
+          nameSpan.textContent = appt['Ad'] + ' ' + appt['Soyad'];
+          div.appendChild(nameSpan);
+          if (appt['Islem']) {
+            var islemSpan = document.createElement('span');
+            islemSpan.className = 'rdv-slot-islem';
+            islemSpan.textContent = appt['Islem'];
+            div.appendChild(islemSpan);
+          }
+        });
+        if (saatHastalari.length > 1) {
+          var badge = document.createElement('span');
+          badge.style.cssText = 'font-size:10px;background:var(--accent);color:#fff;border-radius:10px;padding:1px 6px;margin-top:2px;align-self:flex-start';
+          badge.textContent = saatHastalari.length + ' hasta';
+          div.appendChild(badge);
+        }
+        (function(t, s) { div.addEventListener('click', function() { openRdvModal(null, t, s); }); })(tarih, slot);
+      } else {
+        (function(t, s) { div.addEventListener('click', function() { openRdvModal(null, t, s); }); })(tarih, slot);
+      }
+      col.appendChild(div);
+    });
+    cal.innerHTML = '';
+    cal.appendChild(col);
+  }
+
+  function renderHaftalik(randevular, monDate) {
+    var cal = document.getElementById('rdvCalendar');
+    cal.innerHTML = '';
+    var slots = getSlots();
+    var days = [];
+    for (var i = 0; i < 7; i++) {
+      var d = new Date(monDate); d.setDate(d.getDate() + i); days.push(d);
+    }
+    var cols = days.length;
+    // Header
+    var header = document.createElement('div');
+    header.className = 'rdv-week-header';
+    header.style.gridTemplateColumns = '60px repeat('+cols+',1fr)';
+    header.appendChild(document.createElement('div'));
+    days.forEach(function(d) {
+      var lbl = document.createElement('div');
+      lbl.className = 'rdv-week-day-label';
+      lbl.textContent = DAYS_TR[d.getDay()] + ' ' + d.getDate();
+      header.appendChild(lbl);
+    });
+    cal.appendChild(header);
+    // Grid
+    var grid = document.createElement('div');
+    grid.className = 'rdv-week-grid';
+    grid.style.gridTemplateColumns = '60px repeat('+cols+',1fr)';
+    slots.forEach(function(slot) {
+      var timeLbl = document.createElement('div');
+      timeLbl.style.cssText = 'font-size:10px;color:var(--text-muted);padding:4px;align-self:start';
+      timeLbl.textContent = slot;
+      grid.appendChild(timeLbl);
+      days.forEach(function(d) {
+        var tarih = fmtDate(d);
+        var appt = randevular.find(function(r) { return r['Tarih'] === tarih && r['Saat'] === slot; });
+        var cell = document.createElement('div');
+        cell.className = 'rdv-slot' + (appt ? ' has-appt' : '');
+        cell.style.minHeight = '28px';
+        if (appt) {
+          var nm = document.createElement('span');
+          nm.className = 'rdv-slot-name';
+          nm.style.fontSize = '10px';
+          nm.textContent = appt['Ad'];
+          cell.appendChild(nm);
+          (function(a, t, s) { cell.addEventListener('click', function() { openRdvModal(a, t, s); }); })(appt, tarih, slot);
+        } else {
+          (function(t, s) { cell.addEventListener('click', function() { openRdvModal(null, t, s); }); })(tarih, slot);
+        }
+        grid.appendChild(cell);
+      });
+    });
+    cal.appendChild(grid);
+  }
+
+  function openRdvModal(apptObj, tarih, saat) {
+    // O saatteki TUM hastalar
+    var saatHastalari = rdvCache.filter(function(r) { return r['Tarih'] === tarih && r['Saat'] === saat; });
+    if (saatHastalari.length === 0) { openRdvForm(null, tarih, saat); return; }
+
+    var overlay = document.createElement('div');
+    overlay.className = 'rdv-modal-overlay';
+    overlay.id = 'rdvModalOverlay';
+    var modal = document.createElement('div');
+    modal.className = 'rdv-modal';
+
+    // Her hasta için kart
+    var hastalarHtml = saatHastalari.map(function(h, idx) {
+      return '<div style="background:var(--accent-light);border-radius:12px;padding:12px;margin-bottom:10px">' +
+        '<div style="font-weight:600;font-size:14px;color:var(--accent);margin-bottom:6px">🦷 ' + (h['Ad']||'') + ' ' + (h['Soyad']||'') + '</div>' +
+        '<div style="font-size:12px;color:var(--text-muted)">Telefon: ' + (h['Telefon']||'-') + '</div>' +
+        '<div style="font-size:12px;color:var(--text-muted)">İşlem: ' + (h['Islem']||'-') + '</div>' +
+        (h['Tedavi Notu'] ? '<div style="font-size:12px;color:var(--text-muted)">Not: ' + h['Tedavi Notu'] + '</div>' : '') +
+        '<div class="rdv-btn-row" style="margin-top:8px">' +
+        '<button class="rdv-save-btn" style="font-size:12px;padding:7px" data-idx="' + idx + '">Düzenle</button>' +
+        '<button class="rdv-del-btn" style="font-size:12px;padding:7px" data-id="' + h['ID'] + '">Sil</button>' +
+        '</div></div>';
+    }).join('');
+
+    modal.innerHTML = '<h3>' + saat + ' — ' + saatHastalari.length + ' Randevu</h3>' +
+      hastalarHtml +
+      '<button class="rdv-save-btn" id="rdvYeniBtn" style="width:100%;margin-top:4px">+ Yeni Hasta Ekle</button>' +
+      '<button class="rdv-cancel-btn" onclick="closeRdvModal()" style="width:100%;margin-top:8px">Kapat</button>';
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) closeRdvModal(); });
+
+    // Düzenle butonları
+    modal.querySelectorAll('[data-idx]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var h = saatHastalari[parseInt(this.getAttribute('data-idx'))];
+        closeRdvModal(); openRdvForm(h, tarih, saat);
+      });
+    });
+    // Sil butonları
+    modal.querySelectorAll('[data-id]').forEach(function(btn) {
+      btn.addEventListener('click', function() { deleteRdv(this.getAttribute('data-id')); });
+    });
+    // Yeni hasta
+    modal.querySelector('#rdvYeniBtn').addEventListener('click', function() {
+      closeRdvModal(); openRdvForm(null, tarih, saat);
+    });
+  }
+  window.openRdvModal = openRdvModal;
+
+  function openRdvForm(existing, tarih, saat) {
+    closeRdvModal();
+    var isEdit = !!existing;
+    var overlay = document.createElement('div');
+    overlay.className = 'rdv-modal-overlay';
+    overlay.id = 'rdvModalOverlay';
+    var modal = document.createElement('div');
+    modal.className = 'rdv-modal';
+    modal.innerHTML = '<h3>' + (isEdit ? 'Randevu Duzenle' : 'Yeni Randevu') + '</h3>' +
+      '<div class="rdv-form-row"><label>Ad</label><input id="rm_ad" value="' + (isEdit ? (existing['Ad']||'') : '') + '" placeholder="Hasta adi"></div>' +
+      '<div class="rdv-form-row"><label>Soyad</label><input id="rm_soyad" value="' + (isEdit ? (existing['Soyad']||'') : '') + '" placeholder="Hasta soyadi"></div>' +
+      '<div class="rdv-form-row"><label>Telefon</label><input id="rm_tel" value="' + (isEdit ? (existing['Telefon']||'') : '') + '" placeholder="0500 000 00 00"></div>' +
+      '<div class="rdv-form-row"><label>TC Kimlik No</label><input id="rm_tc" value="' + (isEdit ? (existing['TC']||'') : '') + '" placeholder="Istege bagli"></div>' +
+      '<div class="rdv-form-row"><label>Tarih</label><input type="date" id="rm_tarih" value="' + (tarih||'') + '"></div>' +
+      '<div class="rdv-form-row"><label>Saat</label><input id="rm_saat" value="' + (saat||'') + '"></div>' +
+      '<div class="rdv-form-row"><label>Sure (dakika)</label><input type="number" id="rm_sure" value="' + (isEdit ? (existing['Sure(dk)']||30) : 30) + '"></div>' +
+      '<div class="rdv-form-row"><label>Islem</label><input id="rm_islem" value="' + (isEdit ? (existing['Islem']||'') : '') + '" placeholder="Dolgu, kanal, muayene..."></div>' +
+      '<div class="rdv-form-row"><label>Tedavi Notu</label><textarea id="rm_tedavi" rows="2" placeholder="Tedavi notlari...">' + (isEdit ? (existing['Tedavi Notu']||'') : '') + '</textarea></div>' +
+      '<div class="rdv-form-row"><label>Aciklama</label><textarea id="rm_aciklama" rows="2" placeholder="Ek aciklama...">' + (isEdit ? (existing['Aciklama']||'') : '') + '</textarea></div>' +
+      '<div class="rdv-btn-row">' +
+      '<button class="rdv-save-btn" id="rm_saveBtn">' + (isEdit ? 'Guncelle' : 'Kaydet') + '</button>' +
+      '<button class="rdv-cancel-btn" onclick="closeRdvModal()">Iptal</button>' +
+      '</div>';
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) closeRdvModal(); });
+    modal.querySelector('#rm_saveBtn').addEventListener('click', function() {
+      saveRdv(isEdit ? existing['ID'] : null);
+    });
+  }
+  window.openRdvForm = openRdvForm;
+
+  function closeRdvModal() {
+    var el = document.getElementById('rdvModalOverlay');
+    if (el) el.remove();
+  }
+  window.closeRdvModal = closeRdvModal;
+
+  function saveRdv(existingId) {
+    var data = {
+      action: existingId ? 'randevuGuncelle' : 'randevuEkle',
+      id: existingId,
+      ad: document.getElementById('rm_ad').value.trim(),
+      soyad: document.getElementById('rm_soyad').value.trim(),
+      telefon: document.getElementById('rm_tel').value.trim(),
+      tc: document.getElementById('rm_tc').value.trim(),
+      tarih: document.getElementById('rm_tarih').value,
+      saat: document.getElementById('rm_saat').value.trim(),
+      sure: parseInt(document.getElementById('rm_sure').value) || 30,
+      islem: document.getElementById('rm_islem').value.trim(),
+      tedaviNotu: document.getElementById('rm_tedavi').value.trim(),
+      aciklama: document.getElementById('rm_aciklama').value.trim()
+    };
+    if (!data.ad || !data.soyad) { alert('Ad ve soyad zorunlu.'); return; }
+    fetch(DB_URL, { method: 'POST', body: JSON.stringify(data) })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.success) { closeRdvModal(); loadRandevuView(); }
+        else alert('Hata: ' + (d.error || 'Bilinmeyen'));
+      }).catch(function(e) { alert('Baglanti hatasi: ' + e.message); });
+  }
+  window.saveRdv = saveRdv;
+
+  function deleteRdv(id) {
+    if (!confirm('Randevu silinsin mi?')) return;
+    fetch(DB_URL, { method: 'POST', body: JSON.stringify({ action: 'randevuSil', id: id }) })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.success) { closeRdvModal(); loadRandevuView(); }
+        else alert('Hata: ' + d.error);
+      });
+  }
+  window.deleteRdv = deleteRdv;
+
+  // Nav butonları
+  window.addEventListener('load', function() {
+    document.getElementById('rdvPrev').addEventListener('click', function() {
+      if (rdvView === 'gun') rdvDate.setDate(rdvDate.getDate()-1);
+      else rdvDate.setDate(rdvDate.getDate()-7);
+      loadRandevuView();
+    });
+    document.getElementById('rdvNext').addEventListener('click', function() {
+      if (rdvView === 'gun') rdvDate.setDate(rdvDate.getDate()+1);
+      else rdvDate.setDate(rdvDate.getDate()+7);
+      loadRandevuView();
+    });
+    document.getElementById('rdvGunBtn').addEventListener('click', function() {
+      rdvView = 'gun';
+      this.classList.add('active');
+      document.getElementById('rdvHaftaBtn').classList.remove('active');
+      loadRandevuView();
+    });
+    document.getElementById('rdvHaftaBtn').addEventListener('click', function() {
+      rdvView = 'hafta';
+      this.classList.add('active');
+      document.getElementById('rdvGunBtn').classList.remove('active');
+      loadRandevuView();
+    });
+  });
+
+})();
+</script>
+</body>
+</html>
